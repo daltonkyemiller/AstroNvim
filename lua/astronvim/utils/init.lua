@@ -75,8 +75,8 @@ function M.conditional_func(func, condition, ...)
   if condition and type(func) == "function" then return func(...) end
 end
 
---- Get an icon from `lspkind` if it is available and return it
----@param kind string The kind of icon in `lspkind` to retrieve
+--- Get an icon from the AstroNvim internal icons if it is available and return it
+---@param kind string The kind of icon in astronvim.icons to retrieve
 ---@param padding? integer Padding to add to the end of the icon
 ---@param no_fallback? boolean Whether or not to disable fallback to text icon
 ---@return string icon
@@ -89,6 +89,18 @@ function M.get_icon(kind, padding, no_fallback)
   end
   local icon = M[icon_pack] and M[icon_pack][kind]
   return icon and icon .. string.rep(" ", padding or 0) or ""
+end
+
+--- Get a icon spinner table if it is available in the AstroNvim icons. Icons in format `kind1`,`kind2`, `kind3`, ...
+---@param kind string The kind of icon to check for sequential entries of
+---@return string[]|nil spinners # A collected table of spinning icons in sequential order or nil if none exist
+function M.get_spinner(kind, ...)
+  local spinner = {}
+  repeat
+    local icon = M.get_icon(("%s%d"):format(kind, #spinner + 1), ...)
+    if icon ~= "" then table.insert(spinner, icon) end
+  until not icon or icon == ""
+  if #spinner > 0 then return spinner end
 end
 
 --- Get highlight properties for a given highlight name
@@ -126,7 +138,7 @@ end
 --- Trigger an AstroNvim user event
 ---@param event string The event name to be appended to Astro
 function M.event(event)
-  vim.schedule(function() vim.api.nvim_exec_autocmds("User", { pattern = "Astro" .. event }) end)
+  vim.schedule(function() vim.api.nvim_exec_autocmds("User", { pattern = "Astro" .. event, modeline = false }) end)
 end
 
 --- Open a URL under the cursor with the current operating system
@@ -200,6 +212,20 @@ function M.is_available(plugin)
   return lazy_config_avail and lazy_config.plugins[plugin] ~= nil
 end
 
+--- Resolve the options table for a given plugin with lazy
+---@param plugin string The plugin to search for
+---@return table opts # The plugin options
+function M.plugin_opts(plugin)
+  local lazy_config_avail, lazy_config = pcall(require, "lazy.core.config")
+  local lazy_plugin_avail, lazy_plugin = pcall(require, "lazy.core.plugin")
+  local opts = {}
+  if lazy_config_avail and lazy_plugin_avail then
+    local spec = lazy_config.plugins[plugin]
+    if spec then opts = lazy_plugin.values(spec, "opts") end
+  end
+  return opts
+end
+
 --- A helper function to wrap a module function to require a plugin before running
 ---@param plugin string The plugin to call `require("lazy").load` with
 ---@param module table The system module where the functions live (e.g. `vim.ui`)
@@ -261,7 +287,7 @@ function M.set_mappings(map_table, base)
 end
 
 --- regex used for matching a valid URL/URI string
-local url_matcher =
+M.url_matcher =
   "\\v\\c%(%(h?ttps?|ftp|file|ssh|git)://|[a-z]+[@][a-z]+[.][a-z]+:)%([&:#*@~%_\\-=?!+;/0-9a-z]+%(%([.;/?]|[.][.]+)[&:#*@~%_\\-=?!+/0-9a-z]+|:\\d+|,%(%(%(h?ttps?|ftp|file|ssh|git)://|[a-z]+[@][a-z]+[.][a-z]+:)@![0-9a-z]+))*|\\([&:#*@~%_\\-=?!+;/.0-9a-z]*\\)|\\[[&:#*@~%_\\-=?!+;/.0-9a-z]*\\]|\\{%([&:#*@~%_\\-=?!+;/.0-9a-z]*|\\{[&:#*@~%_\\-=?!+;/.0-9a-z]*})\\})+"
 
 --- Delete the syntax matching rules for URLs/URIs if set
@@ -274,7 +300,7 @@ end
 --- Add syntax matching rules for highlighting URLs/URIs
 function M.set_url_match()
   M.delete_url_match()
-  if vim.g.highlighturl_enabled then vim.fn.matchadd("HighlightURL", url_matcher, 15) end
+  if vim.g.highlighturl_enabled then vim.fn.matchadd("HighlightURL", M.url_matcher, 15) end
 end
 
 --- Run a shell command and capture the output and if the command succeeded or failed
