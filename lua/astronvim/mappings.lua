@@ -1,3 +1,4 @@
+-- TODO: replace <leader> to <Leader> everywhere in AstroNvim v4 to match vimdoc
 local utils = require "astronvim.utils"
 local get_icon = utils.get_icon
 local is_available = utils.is_available
@@ -83,6 +84,7 @@ maps.n["<leader>bd"] = {
 }
 maps.n["<leader>bl"] =
   { function() require("astronvim.utils.buffer").close_left() end, desc = "Close all buffers to the left" }
+maps.n["<leader>bp"] = { function() require("astronvim.utils.buffer").prev() end, desc = "Previous buffer" }
 maps.n["<leader>br"] =
   { function() require("astronvim.utils.buffer").close_right() end, desc = "Close all buffers to the right" }
 maps.n["<leader>bs"] = sections.bs
@@ -419,7 +421,7 @@ maps.n["<leader>ui"] = { ui.set_indent, desc = "Change indent setting" }
 maps.n["<leader>ul"] = { ui.toggle_statusline, desc = "Toggle statusline" }
 maps.n["<leader>uL"] = { ui.toggle_codelens, desc = "Toggle CodeLens" }
 maps.n["<leader>un"] = { ui.change_number, desc = "Change line numbering" }
-maps.n["<leader>uN"] = { ui.toggle_ui_notifications, desc = "Toggle UI notifications" }
+maps.n["<leader>uN"] = { ui.toggle_ui_notifications, desc = "Toggle Notifications" }
 maps.n["<leader>up"] = { ui.toggle_paste, desc = "Toggle paste mode" }
 maps.n["<leader>us"] = { ui.toggle_spell, desc = "Toggle spellcheck" }
 maps.n["<leader>uS"] = { ui.toggle_conceal, desc = "Toggle conceal" }
