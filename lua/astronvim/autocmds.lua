@@ -2,6 +2,7 @@ local augroup = vim.api.nvim_create_augroup
 local autocmd = vim.api.nvim_create_autocmd
 local cmd = vim.api.nvim_create_user_command
 local namespace = vim.api.nvim_create_namespace
+local luv = vim.uv or vim.loop -- TODO: REMOVE WHEN DROPPING SUPPORT FOR Neovim v0.9
 
 local utils = require "astronvim.utils"
 local is_available = utils.is_available
@@ -20,12 +21,12 @@ autocmd({ "BufAdd", "BufEnter", "TabNewEntered" }, {
   group = bufferline_group,
   callback = function(args)
     local buf_utils = require "astronvim.utils.buffer"
+    if not vim.t.bufs then vim.t.bufs = {} end
     if not buf_utils.is_valid(args.buf) then return end
     if args.buf ~= buf_utils.current_buf then
-      buf_utils.last_buf = buf_utils.current_buf
+      buf_utils.last_buf = buf_utils.is_valid(buf_utils.current_buf) and buf_utils.current_buf or nil
       buf_utils.current_buf = args.buf
     end
-    if not vim.t.bufs then vim.t.bufs = {} end
     local bufs = vim.t.bufs
     if not vim.tbl_contains(bufs, args.buf) then
       table.insert(bufs, args.buf)
@@ -217,7 +218,7 @@ if is_available "neo-tree.nvim" then
       if package.loaded["neo-tree"] then
         vim.api.nvim_del_augroup_by_name "neotree_start"
       else
-        local stats = vim.loop.fs_stat(vim.api.nvim_buf_get_name(0))
+        local stats = luv.fs_stat(vim.api.nvim_buf_get_name(0))
         if stats and stats.type == "directory" then
           vim.api.nvim_del_augroup_by_name "neotree_start"
           require "neo-tree"
@@ -250,13 +251,16 @@ autocmd({ "VimEnter", "ColorScheme" }, {
   end,
 })
 
-autocmd({ "BufReadPost", "BufNewFile" }, {
+autocmd({ "BufReadPost", "BufNewFile", "BufWritePost" }, {
   desc = "AstroNvim user events for file detection (AstroFile and AstroGitFile)",
   group = augroup("file_user_events", { clear = true }),
   callback = function(args)
     if not (vim.fn.expand "%" == "" or vim.api.nvim_get_option_value("buftype", { buf = args.buf }) == "nofile") then
-      utils.event "File"
-      if utils.cmd({ "git", "-C", vim.fn.expand "%:p:h", "rev-parse" }, false) then utils.event "GitFile" end
+      astroevent "File"
+      if utils.cmd({ "git", "-C", vim.fn.expand "%:p:h", "rev-parse" }, false) then
+        astroevent "GitFile"
+        vim.api.nvim_del_augroup_by_name "file_user_events"
+      end
     end
   end,
 })
